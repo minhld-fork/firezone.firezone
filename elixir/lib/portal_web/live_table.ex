@@ -252,9 +252,14 @@ defmodule PortalWeb.LiveTable do
   end
 
   defp filter(%{filter: %{type: {:range, :datetime}}} = assigns) do
+    # `datetime-local` carries no zone, so the bounds are interpreted against
+    # whatever wall clock the input is showing. In Local mode the browser may
+    # be a day ahead of (or behind) UTC, so pad the lookback/lookahead by a
+    # day to keep legitimate "today local" entries reachable without changing
+    # the server-side filter (which has no lookback constraint).
     today = Date.utc_today()
-    earliest = Date.add(today, -90) |> Date.to_iso8601()
-    latest = Date.to_iso8601(today)
+    earliest = today |> Date.add(-91) |> Date.to_iso8601()
+    latest = today |> Date.add(1) |> Date.to_iso8601()
     mode_field = "#{assigns.filter.name}_mode"
     mode = if assigns.form[mode_field].value == "local", do: "local", else: "utc"
 

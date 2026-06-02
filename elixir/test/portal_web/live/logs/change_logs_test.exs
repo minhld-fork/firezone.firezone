@@ -42,6 +42,23 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
       assert html =~ "Audit logs related to configuration"
     end
 
+    test "fresh account shows the unfiltered empty slot, not the filtered one", %{
+      conn: conn,
+      account: account,
+      actor: actor
+    } do
+      {:ok, _lv, html} =
+        conn
+        |> authorize_conn(actor)
+        |> live(~p"/#{account}/logs/change_logs")
+
+      # The default `show_system: false` is applied to the DB query only;
+      # it must not register as an active filter and trigger the
+      # "No results found" / Reset state.
+      assert html =~ "No change logs"
+      refute html =~ "No results found"
+    end
+
     test "lists change logs for the account only", %{
       conn: conn,
       account: account,
@@ -695,6 +712,21 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
                conn
                |> authorize_conn(actor)
                |> live(~p"/#{account}/logs/change_logs/#{missing}")
+
+      assert to == ~p"/#{account}/logs/change_logs"
+    end
+
+    test "redirects when path event_id is the right length but not hex", %{
+      conn: conn,
+      account: account,
+      actor: actor
+    } do
+      malformed = String.duplicate("z", 24)
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               conn
+               |> authorize_conn(actor)
+               |> live(~p"/#{account}/logs/change_logs/#{malformed}")
 
       assert to == ~p"/#{account}/logs/change_logs"
     end

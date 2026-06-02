@@ -573,7 +573,10 @@ defmodule PortalWeb.Logs.ChangeLogs do
     end
 
     def fetch_change_log(event_id, subject) do
-      with {:ok, event_id} <- EventId.cast(event_id) do
+      # `EventId.parse/1` is the strict 24-char-hex validator; `cast/1` only
+      # checks length and would let a malformed value reach `dump/1`, which
+      # then errors on base16 decode and crashes the LiveView.
+      with {:ok, event_id} <- EventId.parse(event_id) do
         result =
           from(cl in ChangeLog, as: :change_logs)
           |> where([change_logs: cl], cl.event_id == ^event_id)
