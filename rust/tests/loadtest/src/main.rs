@@ -53,8 +53,8 @@ use crate::config::{HttpConfig, MIN_PING_COUNT, PingConfig, TcpConfig, TestType,
 use clap::{Parser, Subcommand};
 use config::LoadTestConfig;
 use rand::rngs::StdRng;
-use rand::seq::SliceRandom;
-use rand::{Rng as _, SeedableRng as _};
+use rand::seq::IndexedRandom;
+use rand::{RngExt as _, SeedableRng as _};
 use serde::Serialize;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -237,7 +237,7 @@ impl TestSelector {
 
     fn select(&mut self, config: &LoadTestConfig) -> AnyTestConfig {
         let types = config.enabled_types();
-        let test_type = types[self.rng.gen_range(0..types.len())];
+        let test_type = types[self.rng.random_range(0..types.len())];
 
         match test_type {
             TestType::Http => AnyTestConfig::Http(self.resolve_http(&config.http)),
@@ -273,16 +273,16 @@ impl TestSelector {
             .choose(&mut self.rng)
             .expect("should have at least one address");
 
-        let concurrent = self.rng.gen_range(config.concurrent) as usize;
-        let duration = Duration::from_secs(self.rng.gen_range(config.duration_secs));
-        let timeout = Duration::from_secs(self.rng.gen_range(config.timeout_secs));
+        let concurrent = self.rng.random_range(config.concurrent) as usize;
+        let duration = Duration::from_secs(self.rng.random_range(config.duration_secs));
+        let timeout = Duration::from_secs(self.rng.random_range(config.timeout_secs));
         let echo_mode = config.echo_mode;
-        let echo_payload_size = self.rng.gen_range(config.echo_payload_size) as usize;
+        let echo_payload_size = self.rng.random_range(config.echo_payload_size) as usize;
         let echo_interval = Some(Duration::from_secs(
-            self.rng.gen_range(config.echo_interval_secs),
+            self.rng.random_range(config.echo_interval_secs),
         ));
         let echo_read_timeout =
-            Duration::from_secs(self.rng.gen_range(config.echo_read_timeout_secs));
+            Duration::from_secs(self.rng.random_range(config.echo_read_timeout_secs));
 
         tcp::TestConfig {
             target: address.to_owned(),
@@ -303,8 +303,8 @@ impl TestSelector {
             .expect("should have at least one address");
         let address = Url::parse(address).expect("URL validated during config load");
 
-        let concurrent = self.rng.gen_range(config.concurrent) as usize;
-        let duration = Duration::from_secs(self.rng.gen_range(config.duration_secs));
+        let concurrent = self.rng.random_range(config.concurrent) as usize;
+        let duration = Duration::from_secs(self.rng.random_range(config.duration_secs));
 
         websocket::TestConfig {
             url: address,
@@ -323,10 +323,10 @@ impl TestSelector {
             .collect();
 
         // Ensure minimum count of 1 ping
-        let count = (self.rng.gen_range(config.count) as usize).max(MIN_PING_COUNT);
-        let interval = Duration::from_millis(self.rng.gen_range(config.interval_ms));
-        let timeout = Duration::from_millis(self.rng.gen_range(config.timeout_ms));
-        let payload_size = self.rng.gen_range(config.payload_size) as usize;
+        let count = (self.rng.random_range(config.count) as usize).max(MIN_PING_COUNT);
+        let interval = Duration::from_millis(self.rng.random_range(config.interval_ms));
+        let timeout = Duration::from_millis(self.rng.random_range(config.timeout_ms));
+        let payload_size = self.rng.random_range(config.payload_size) as usize;
 
         ping::TestConfig {
             targets,
