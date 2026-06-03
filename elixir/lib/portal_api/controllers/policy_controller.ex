@@ -7,6 +7,7 @@ defmodule PortalAPI.PolicyController do
 
   tags ["Policies"]
 
+  # coveralls-ignore-start - OpenApiSpex operation specs are compile-time, not executable
   operation :index,
     summary: "List Policies",
     parameters: [
@@ -16,6 +17,8 @@ defmodule PortalAPI.PolicyController do
     responses: [
       ok: {"Policy Response", "application/json", PortalAPI.Schemas.Policy.ListResponse}
     ]
+
+  # coveralls-ignore-stop
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, params) do
@@ -28,6 +31,7 @@ defmodule PortalAPI.PolicyController do
     end
   end
 
+  # coveralls-ignore-start - OpenApiSpex operation specs are compile-time, not executable
   operation :show,
     summary: "Show Policy",
     parameters: [
@@ -42,6 +46,8 @@ defmodule PortalAPI.PolicyController do
       ok: {"Policy Response", "application/json", PortalAPI.Schemas.Policy.Response}
     ]
 
+  # coveralls-ignore-stop
+
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
     with {:ok, policy} <- Database.fetch_policy(id, conn.assigns.subject) do
@@ -51,14 +57,18 @@ defmodule PortalAPI.PolicyController do
     end
   end
 
+  # coveralls-ignore-start - OpenApiSpex operation specs are compile-time, not executable
   operation :create,
     summary: "Create Policy",
     parameters: [],
     request_body:
-      {"Policy Attributes", "application/json", PortalAPI.Schemas.Policy.Request, required: true},
+      {"Policy Attributes", "application/json", PortalAPI.Schemas.Policy.CreateRequest,
+       required: true},
     responses: [
       ok: {"Policy Response", "application/json", PortalAPI.Schemas.Policy.Response}
     ]
+
+  # coveralls-ignore-stop
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"policy" => params}) do
@@ -79,6 +89,7 @@ defmodule PortalAPI.PolicyController do
     Error.handle(conn, {:error, :bad_request})
   end
 
+  # coveralls-ignore-start - OpenApiSpex operation specs are compile-time, not executable
   operation :update,
     summary: "Update a Policy",
     parameters: [
@@ -90,10 +101,13 @@ defmodule PortalAPI.PolicyController do
       ]
     ],
     request_body:
-      {"Policy Attributes", "application/json", PortalAPI.Schemas.Policy.Request, required: true},
+      {"Policy Attributes", "application/json", PortalAPI.Schemas.Policy.UpdateRequest,
+       required: true},
     responses: [
       ok: {"Policy Response", "application/json", PortalAPI.Schemas.Policy.Response}
     ]
+
+  # coveralls-ignore-stop
 
   @spec update(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def update(conn, %{"id" => id, "policy" => params}) do
@@ -112,6 +126,7 @@ defmodule PortalAPI.PolicyController do
     Error.handle(conn, {:error, :bad_request})
   end
 
+  # coveralls-ignore-start - OpenApiSpex operation specs are compile-time, not executable
   operation :delete,
     summary: "Delete a Policy",
     parameters: [
@@ -125,6 +140,8 @@ defmodule PortalAPI.PolicyController do
     responses: [
       ok: {"Policy Response", "application/json", PortalAPI.Schemas.Policy.Response}
     ]
+
+  # coveralls-ignore-stop
 
   @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, %{"id" => id}) do
@@ -157,7 +174,6 @@ defmodule PortalAPI.PolicyController do
 
       case result do
         nil -> {:error, :not_found}
-        {:error, :unauthorized} -> {:error, :unauthorized}
         policy -> {:ok, policy}
       end
     end

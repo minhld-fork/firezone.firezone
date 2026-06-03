@@ -25,24 +25,145 @@ defmodule PortalAPI.Schemas.Policy do
     })
   end
 
-  defmodule Request do
+  defmodule Condition do
+    require OpenApiSpex
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "PolicyCondition",
+      description: "Condition that must be satisfied for the Policy to grant access",
+      type: :object,
+      properties: %{
+        property: %Schema{
+          type: :string,
+          description: "Property the condition is evaluated against",
+          enum: [
+            "remote_ip_location_region",
+            "remote_ip",
+            "auth_provider_id",
+            "current_utc_datetime",
+            "client_verified"
+          ]
+        },
+        operator: %Schema{
+          type: :string,
+          description: "Operator used to evaluate the property against the values",
+          enum: [
+            "contains",
+            "does_not_contain",
+            "is_in",
+            "is_not_in",
+            "is_in_day_of_week_time_ranges",
+            "is_in_cidr",
+            "is_not_in_cidr",
+            "is"
+          ]
+        },
+        values: %Schema{
+          type: :array,
+          description: "Values the operator compares the property against",
+          items: %Schema{type: :string}
+        }
+      },
+      required: [:property, :operator],
+      example: %{
+        "property" => "remote_ip",
+        "operator" => "is_in_cidr",
+        "values" => ["10.0.0.0/8"]
+      }
+    })
+  end
+
+  defmodule CreateRequest do
     require OpenApiSpex
     alias OpenApiSpex.Schema
     alias PortalAPI.Schemas.Policy
 
     OpenApiSpex.schema(%{
-      title: "PolicyRequest",
+      title: "PolicyCreateRequest",
       description: "POST body for creating a Policy",
       type: :object,
       properties: %{
-        policy: Policy.Schema
+        policy: %Schema{
+          type: :object,
+          properties: %{
+            group_id: %Schema{type: :string, format: :uuid, description: "Group ID"},
+            resource_id: %Schema{type: :string, format: :uuid, description: "Resource ID"},
+            description: %Schema{
+              type: :string,
+              description: "Policy Description",
+              nullable: true
+            },
+            conditions: %Schema{
+              type: :array,
+              description: "Conditions that must be satisfied for the Policy to grant access",
+              items: Policy.Condition
+            }
+          },
+          required: [:group_id, :resource_id]
+        }
       },
       required: [:policy],
       example: %{
         "policy" => %{
           "resource_id" => "a9f60587-793c-46ae-8525-597f43ab2fb1",
           "group_id" => "88eae9ce-9179-48c6-8430-770e38dd4775",
-          "description" => "Policy to allow something"
+          "description" => "Policy to allow something",
+          "conditions" => [
+            %{
+              "property" => "remote_ip",
+              "operator" => "is_in_cidr",
+              "values" => ["10.0.0.0/8"]
+            }
+          ]
+        }
+      }
+    })
+  end
+
+  defmodule UpdateRequest do
+    require OpenApiSpex
+    alias OpenApiSpex.Schema
+    alias PortalAPI.Schemas.Policy
+
+    OpenApiSpex.schema(%{
+      title: "PolicyUpdateRequest",
+      description:
+        "PATCH/PUT body for updating a Policy. All fields are optional; omitted fields keep " <>
+          "their current value.",
+      type: :object,
+      properties: %{
+        policy: %Schema{
+          type: :object,
+          properties: %{
+            group_id: %Schema{type: :string, format: :uuid, description: "Group ID"},
+            resource_id: %Schema{type: :string, format: :uuid, description: "Resource ID"},
+            description: %Schema{
+              type: :string,
+              description: "Policy Description",
+              nullable: true
+            },
+            conditions: %Schema{
+              type: :array,
+              description: "Conditions that must be satisfied for the Policy to grant access",
+              items: Policy.Condition
+            }
+          }
+        }
+      },
+      required: [:policy],
+      example: %{
+        "policy" => %{
+          "resource_id" => "a9f60587-793c-46ae-8525-597f43ab2fb1",
+          "group_id" => "88eae9ce-9179-48c6-8430-770e38dd4775",
+          "description" => "Policy to allow something",
+          "conditions" => [
+            %{
+              "property" => "remote_ip",
+              "operator" => "is_in_cidr",
+              "values" => ["10.0.0.0/8"]
+            }
+          ]
         }
       }
     })
