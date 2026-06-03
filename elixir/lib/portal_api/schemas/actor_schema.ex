@@ -14,7 +14,7 @@ defmodule PortalAPI.Schemas.Actor do
         name: %Schema{
           type: :string,
           description: "Actor Name",
-          pattern: "[a-zA-Z][a-zA-Z0-9_]+"
+          maxLength: 255
         },
         type: %Schema{type: :string, description: "Actor Type"},
         email: %Schema{type: :string, description: "Actor Email"},
@@ -83,7 +83,7 @@ defmodule PortalAPI.Schemas.Actor do
             name: %Schema{
               type: :string,
               description: "Actor Name",
-              pattern: "[a-zA-Z][a-zA-Z0-9_]+"
+              maxLength: 255
             },
             type: %Schema{
               type: :string,
@@ -133,7 +133,7 @@ defmodule PortalAPI.Schemas.Actor do
             name: %Schema{
               type: :string,
               description: "Actor Name",
-              pattern: "[a-zA-Z][a-zA-Z0-9_]+"
+              maxLength: 255
             },
             type: %Schema{
               type: :string,

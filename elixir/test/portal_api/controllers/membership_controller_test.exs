@@ -262,6 +262,26 @@ defmodule PortalAPI.MembershipControllerTest do
       assert Enum.sort(data["actor_ids"]) == Enum.sort([actor1.id, actor3.id])
     end
 
+    test "deduplicates repeated actor ids in add", %{
+      conn: conn,
+      account: account,
+      actor: api_actor
+    } do
+      group = group_fixture(account: account)
+      actor = actor_fixture(account: account)
+
+      attrs = %{"add" => [actor.id, actor.id]}
+
+      conn =
+        conn
+        |> authorize_conn(api_actor)
+        |> put_req_header("content-type", "application/json")
+        |> patch("/groups/#{group.id}/memberships", memberships: attrs)
+
+      assert %{"data" => data} = json_response(conn, 200)
+      assert data == %{"actor_ids" => [actor.id]}
+    end
+
     test "group remains the same on empty params", %{
       conn: conn,
       account: account,
@@ -372,6 +392,25 @@ defmodule PortalAPI.MembershipControllerTest do
 
       assert %{"data" => data} = json_response(conn, 200)
       assert Enum.sort(data["actor_ids"]) == Enum.sort([actor1.id, actor3.id])
+    end
+
+    test "rejects duplicate actor in memberships list", %{
+      conn: conn,
+      account: account,
+      actor: api_actor
+    } do
+      group = group_fixture(account: account)
+      actor = actor_fixture(account: account)
+
+      attrs = [%{"actor_id" => actor.id}, %{"actor_id" => actor.id}]
+
+      conn =
+        conn
+        |> authorize_conn(api_actor)
+        |> put_req_header("content-type", "application/json")
+        |> put("/groups/#{group.id}/memberships", memberships: attrs)
+
+      assert json_response(conn, 422)["error"]["reason"] == "Unprocessable Content"
     end
   end
 end
