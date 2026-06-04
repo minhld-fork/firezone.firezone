@@ -166,7 +166,7 @@ defmodule PortalWeb.Logs.ChangeLogs do
             <.actor_cell subject={row.change_log.subject} />
           </:col>
           <:col :let={row} label="Operation" class="w-28">
-            <.op_badge op={row.change_log.operation} />
+            <.op_label op={row.change_log.operation} />
           </:col>
           <:col :let={row} label="Changes" class="w-24">
             <.changes_cell op={row.change_log.operation} count={row.changed_count} />
@@ -257,43 +257,22 @@ defmodule PortalWeb.Logs.ChangeLogs do
     """
   end
 
-  defp op_badge(assigns) do
-    cfg = op_badge_config(assigns.op)
-    assigns = assign(assigns, cfg: cfg)
-
+  defp op_label(%{op: :insert} = assigns) do
     ~H"""
-    <span class={[
-      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium",
-      @cfg.pill_class
-    ]}>
-      <span class={["w-1.5 h-1.5 rounded-full shrink-0", @cfg.dot_class]}></span>
-      {@cfg.label}
-    </span>
+    <.badge type="success" class="uppercase">Insert</.badge>
     """
   end
 
-  defp op_badge_config(:insert) do
-    %{
-      label: "Insert",
-      pill_class: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-      dot_class: "bg-green-500"
-    }
+  defp op_label(%{op: :update} = assigns) do
+    ~H"""
+    <.badge type="warning" class="uppercase">Update</.badge>
+    """
   end
 
-  defp op_badge_config(:update) do
-    %{
-      label: "Update",
-      pill_class: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-      dot_class: "bg-amber-500"
-    }
-  end
-
-  defp op_badge_config(:delete) do
-    %{
-      label: "Delete",
-      pill_class: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      dot_class: "bg-red-500"
-    }
+  defp op_label(%{op: :delete} = assigns) do
+    ~H"""
+    <.badge type="danger" class="uppercase">Delete</.badge>
+    """
   end
 
   defp changes_cell(%{op: :update} = assigns) do
@@ -351,9 +330,8 @@ defmodule PortalWeb.Logs.ChangeLogs do
     <div class="shrink-0 px-5 pt-4 pb-3 border-b border-[var(--border)] bg-[var(--surface-overlay)] flex items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
         <h2 class="text-sm font-semibold text-[var(--text-primary)] truncate">
-          {change_title(@change_log)}
+          Change log event <span class="font-mono">{@change_log.event_id}</span>
         </h2>
-        <.op_badge op={@change_log.operation} />
       </div>
       <button
         phx-click="close_panel"
@@ -369,21 +347,12 @@ defmodule PortalWeb.Logs.ChangeLogs do
   attr :change_log, :any, required: true
 
   defp change_log_diff(assigns) do
-    op = assigns.change_log.operation
-    {legend_label, legend_dot} = diff_legend(op)
-
-    assigns =
-      assign(assigns, op: op, legend_label: legend_label, legend_dot: legend_dot)
-
     ~H"""
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <div class="shrink-0 px-5 py-2.5 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
+      <div class="shrink-0 px-5 py-2.5 border-b border-[var(--border)] bg-[var(--surface)]">
         <h3 class="text-[10px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)]">
           Diff
         </h3>
-        <span class="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
-          <span class={["w-1.5 h-1.5 rounded-full", @legend_dot]}></span> {@legend_label}
-        </span>
       </div>
       <div class="flex-1 overflow-auto bg-[var(--surface)]">
         <div class="json-diff">
@@ -410,7 +379,7 @@ defmodule PortalWeb.Logs.ChangeLogs do
             <span class="font-mono text-xs text-[var(--text-primary)]">{@change_log.object}</span>
           </.detail_row>
           <.detail_row label="Operation">
-            <.op_badge op={@change_log.operation} />
+            <.op_label op={@change_log.operation} />
           </.detail_row>
           <.detail_row label="Timestamp">
             <span
@@ -508,14 +477,6 @@ defmodule PortalWeb.Logs.ChangeLogs do
       </p>
     </section>
     """
-  end
-
-  defp diff_legend(:insert), do: {"Inserted record shown", "bg-green-500"}
-  defp diff_legend(:delete), do: {"Deleted record shown", "bg-red-500"}
-  defp diff_legend(:update), do: {"Changes shown inline", "bg-amber-500"}
-
-  defp change_title(%{operation: operation, object: object}) do
-    "#{operation |> Atom.to_string() |> String.capitalize()} on #{object}"
   end
 
   # The `show_system` toggle is off by default, so when the URL omits the

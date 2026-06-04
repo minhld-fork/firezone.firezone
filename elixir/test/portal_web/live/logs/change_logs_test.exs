@@ -620,12 +620,12 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
         |> live(~p"/#{account}/logs/change_logs/#{cl.event_id}")
 
       assert has_element?(lv, "#change-log-panel.translate-x-0")
-      assert html =~ "Update on actors"
+      assert html =~ "Change log event"
+      assert html =~ cl.event_id
       # Details sidebar
       assert html =~ "Object"
       assert html =~ "Operation"
       assert html =~ "Timestamp"
-      assert html =~ cl.event_id
       # Diff is rendered server-side as a tree of <li> elements with the
       # json-diff-* class contract the CSS targets.
       assert has_element?(lv, ".json-diff .json-diff-modified")
@@ -731,7 +731,7 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
       assert to == ~p"/#{account}/logs/change_logs"
     end
 
-    test "side panel for an insert renders the insert badge and 'Inserted record' legend", %{
+    test "side panel for an insert renders the green Insert label", %{
       conn: conn,
       account: account,
       actor: actor
@@ -750,8 +750,7 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
         |> authorize_conn(actor)
         |> live(~p"/#{account}/logs/change_logs/#{cl.event_id}")
 
-      assert html =~ "Insert on actors"
-      assert html =~ "Inserted record shown"
+      assert html =~ ~r/bg-green-\d+[^>]*>\s*Insert/
     end
 
     test "side panel timestamp is the absolute mode-aware form, not a relative 'ago' string", %{
@@ -782,7 +781,7 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
       assert panel_html =~ "5/30/26"
     end
 
-    test "side panel for a delete renders the delete badge and 'Deleted record' legend", %{
+    test "side panel for a delete renders the red Delete label", %{
       conn: conn,
       account: account,
       actor: actor
@@ -801,8 +800,7 @@ defmodule PortalWeb.Logs.ChangeLogsTest do
         |> authorize_conn(actor)
         |> live(~p"/#{account}/logs/change_logs/#{cl.event_id}")
 
-      assert html =~ "Delete on actors"
-      assert html =~ "Deleted record shown"
+      assert html =~ ~r/bg-red-\d+[^>]*>\s*Delete/
     end
   end
 
