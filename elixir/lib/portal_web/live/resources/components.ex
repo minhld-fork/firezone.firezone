@@ -1472,9 +1472,7 @@ defmodule PortalWeb.Resources.Components do
                       <div class="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] shrink-0">
                         <.provider_icon type={provider_type_from_group(row)} class="w-3 h-3" />
                       </div>
-                      <span class="flex-1 text-xs text-[var(--text-primary)] truncate">
-                        {row.group.name}
-                      </span>
+                      <span class="flex-1 text-xs text-[var(--text-primary)] truncate">{row.group.name}</span>
                       <.icon
                         name="ri-close-line"
                         class="w-3.5 h-3.5 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 shrink-0 transition-opacity"
