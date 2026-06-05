@@ -8,6 +8,7 @@ use quinn_udp::{EcnCodepoint, Transmit, UdpSockRef};
 use std::io;
 use std::io::IoSliceMut;
 use std::ops::Deref;
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows", test))]
 use std::time::Duration;
 use std::{
     net::{IpAddr, SocketAddr},
@@ -318,22 +319,49 @@ impl PerfUdpSocket {
             datagram.ecn,
         )?;
 
-        let mut attempt = 0;
+        #[cfg(any(target_os = "linux", target_os = "android"))]
+        return self.send_with_gso_fallback(&transmit).await;
 
-        loop {
-            match self.send_transmit(&transmit).await {
-                Ok(()) => return Ok(()),
-                Err(e) => {
-                    let backoff = backoff(&e, attempt).ok_or(e)?; // Attempt to get a backoff value or otherwise bail with error.
+        #[cfg(not(any(target_os = "linux", target_os = "android")))]
+        {
+            let mut attempt = 0;
 
-                    tracing::debug!(?backoff, dst = %datagram.dst, len = %datagram.packet.len(), "Retrying packet");
+            loop {
+                match self.send_transmit(&transmit).await {
+                    Ok(()) => return Ok(()),
+                    Err(e) => {
+                        let backoff = backoff(&e, attempt).ok_or(e)?; // Attempt to get a backoff value or otherwise bail with error.
 
-                    tokio::time::sleep(backoff).await;
+                        tracing::debug!(?backoff, dst = %datagram.dst, len = %datagram.packet.len(), "Retrying packet");
+
+                        tokio::time::sleep(backoff).await;
+                    }
                 }
-            }
 
-            attempt += 1;
+                attempt += 1;
+            }
         }
+    }
+
+    /// Sends a [`Transmit`], retrying once without segmentation offload if the kernel rejects GSO.
+    ///
+    /// Some NICs and drivers don't support GSO and Linux only surfaces this at send time as `EIO`
+    /// or `EINVAL`. On the first such failure, `quinn-udp` disables GSO for all subsequent sends,
+    /// so a single immediate retry re-splits the batch into individual datagrams via
+    /// [`Self::calculate_chunk_size`]. No delay is required: the socket is writable and
+    /// back-pressure from a full send buffer is already handled by `async_io(Interest::WRITABLE)`
+    /// inside [`Self::send_transmit`].
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    async fn send_with_gso_fallback(&self, transmit: &Transmit<'_>) -> Result<()> {
+        match self.send_transmit(transmit).await {
+            Ok(()) => return Ok(()),
+            Err(e) if is_gso_error(&e) => {
+                tracing::debug!(dst = %transmit.destination, "Retrying packet without segmentation offload");
+            }
+            Err(e) => return Err(e),
+        }
+
+        self.send_transmit(transmit).await
     }
 
     pub fn set_buffer_sizes(
@@ -521,16 +549,25 @@ fn is_equal_modulo_scope_for_ipv6_link_local(expected: SocketAddr, actual: Socke
     }
 }
 
+/// Whether `e` is the kernel rejecting generic segmentation offload (GSO).
+///
+/// quinn-udp disables GSO on the socket after the first such error but returns it for the current
+/// datagram, which must then be re-sent split into individual datagrams.
+#[cfg(any(target_os = "linux", target_os = "android"))]
+fn is_gso_error(e: &anyhow::Error) -> bool {
+    let Some(raw_os_error) = e
+        .any_downcast_ref::<io::Error>()
+        .and_then(io::Error::raw_os_error)
+    else {
+        return false;
+    };
+
+    raw_os_error == libc::EIO || raw_os_error == libc::EINVAL
+}
+
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
 fn backoff(e: &anyhow::Error, attempts: u32) -> Option<Duration> {
     let raw_os_error = e.any_downcast_ref::<io::Error>()?.raw_os_error()?;
-
-    // On Linux and Android, we retry sending once for os error 5.
-    //
-    // quinn-udp disables GSO for those but cannot automatically re-send them because we need to split the datagram differently.
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    if raw_os_error == libc::EIO && attempts < 1 {
-        return Some(Duration::ZERO);
-    }
 
     // On MacOS, the kernel may return ENOBUFS if the buffer fills up.
     //
@@ -772,22 +809,20 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "linux")]
-    fn immediate_retry_of_os_error_5() {
-        let err = anyhow::Error::new(io::Error::from_raw_os_error(libc::EIO));
+    fn gso_errors_are_retried() {
+        for raw in [libc::EIO, libc::EINVAL] {
+            let err = anyhow::Error::new(io::Error::from_raw_os_error(raw));
 
-        let backoff = backoff(&err, 0);
-
-        assert_eq!(backoff.unwrap(), Duration::ZERO);
+            assert!(is_gso_error(&err));
+        }
     }
 
     #[test]
     #[cfg(target_os = "linux")]
-    fn only_one_retry_of_os_error_5() {
-        let err = anyhow::Error::new(io::Error::from_raw_os_error(libc::EIO));
+    fn non_gso_errors_are_not_retried() {
+        let err = anyhow::Error::new(io::Error::from_raw_os_error(libc::ENOBUFS));
 
-        let backoff = backoff(&err, 1);
-
-        assert!(backoff.is_none());
+        assert!(!is_gso_error(&err));
     }
 
     #[test]
