@@ -1435,9 +1435,7 @@ defmodule PortalWeb.Resources.Components do
                       <div class="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] shrink-0">
                         <.provider_icon type={provider_type_from_group(row)} class="w-3 h-3" />
                       </div>
-                      <span class="text-xs text-[var(--text-primary)] truncate">
-                        {row.group.name}
-                      </span>
+                      <span class="text-xs text-[var(--text-primary)] truncate">{row.group.name}</span>
                     </button>
                   </li>
                   <li
