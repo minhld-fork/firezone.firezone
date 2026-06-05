@@ -626,7 +626,7 @@ defmodule PortalWeb.Resources.Components do
             "Resolves only AAAA records. Clients connect over IPv6."
 
           _ ->
-            "Resolves A and AAAA records. Clients connect over IPv4 or IPv6, whichever is available. We recommend setting this to IPv4-only if you experience connectivity issues."
+            "Resolves A and AAAA records. Clients connect over IPv4 or IPv6, whichever is available. We recommend setting this to IPv4 (A records only) if you experience connectivity issues."
         end}
       </p>
     </div>
