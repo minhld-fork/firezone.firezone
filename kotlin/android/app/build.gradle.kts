@@ -277,7 +277,7 @@ dependencies {
     // Slack's Compose lint checks. Pinned to 1.4.2: lint check JARs are versioned to
     // the lint API (`lint = AGP + 23`), so with AGP 8.13 (lint 31.13) we need a build
     // against an older lint. 1.4.3+/1.5.0 target lint 32.2 (AGP 9.2) and get rejected.
-    lintChecks("com.slack.lint.compose:compose-lint-checks:1.4.2")
+    lintChecks("com.slack.lint.compose:compose-lint-checks:1.5.1")
 }
 
 val rustDir = layout.projectDirectory.dir("../../../rust")
